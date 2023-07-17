@@ -9,6 +9,7 @@ const {sendEmail} = require('../services/sendEmail');
 const {otpEnum} = require('../constants/enums');
 const {userExist, welcomeMes, serverError, badReq, accVerified, invalidOtp, expiredOtp} = require('../constants/message');
 const {creditTransaction, debitTransaction} = require('../controllers/walletController');
+const jwt = require('jsonwebtoken');
 
 
 const createUser = async (req, res)=>{
@@ -117,7 +118,7 @@ const verifyUserWithOtp = async (req, res) => {
       return;
     };
     
-    const otpTimeDiff = otpValidity(otpData.createdAt)
+    const otpTimeDiff = otpValidity(otpData.createdAt);
 
     if(otpTimeDiff > 5 ){
       res.status(404).json({
@@ -198,13 +199,13 @@ const loginUser = async (req, res) =>{
     const gethash = await comparePassword(password, DBsalt);
     const hash = gethash.hash;
 
-    if(DBhash !== hash || DBemail != email ){
-      res.status(401).json({
-        status : false,
-        message : 'Invalid password or email'
-      })
-      return;
-    };
+    const payloadData = {
+      email: email,
+      _id: uuidv4()
+    }
+
+    if(DBhash !== hash || DBemail != email ) throw new Error('Invalid password or email', 400);
+  
     
     const userInfo = await userModel.findOne({
       where:{
@@ -215,11 +216,12 @@ const loginUser = async (req, res) =>{
       }
     });
 
-    
+    const token = jwt.sign(payloadData, process.env.JWT_SECRET_KEY, {expiresIn : '1h'});
 
     res.status(200).json({
       status : true,
       message : "Login successful",
+      token : token,
       data: [
         { userId: userInfo.userId, 
           email: userInfo.email, 
@@ -234,11 +236,41 @@ const loginUser = async (req, res) =>{
 
   
   } catch( error) {
+    console.log(error);
     res.status(500).json({
       status: false,
       message: error.message || serverError
     });
   };
+
+};
+
+const getUserProfile = async (req, res) => {
+  try{
+    const {user} = req.params;
+
+    if(!user) throw new Error('An important Credential is missing', 400);
+
+    const getUser = await userModel.findOne({
+      attributes: ["userId", "surname", "othernames", "email", "phone", "gender", "dob", "marital_status"],
+      where:{ userId: user}
+    });
+
+    if(!getUser) throw new Error('No profile found.', 400);
+
+    res.status(200).json({
+      status: true,
+      message: "Your Profile",
+      data: getUser
+    });
+    
+  }catch(e){
+    console.log(e);
+    res.status(500).json({
+      status: false,
+      message: e.message || serverError
+    })
+  }
 
 };
 
@@ -248,6 +280,7 @@ const loginUser = async (req, res) =>{
 module.exports = {
                   createUser,
                   verifyUserWithOtp,
-                  loginUser
+                  loginUser,
+                  getUserProfile
 };
 

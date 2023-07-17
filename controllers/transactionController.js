@@ -12,13 +12,7 @@ const getTransactions = async (req, res)=>{
     const pages = (page - 1) || 0;
     const offset = pages * limit;
 
-    const getAllTransactions = await transactionModel.findAll(
-      {
-        order:[['sn']],
-        limit: limit,
-        offset: offset,
-      }
-     );
+    const getAllTransactions = await getAllTransaction(limit, offset);
 
     res.status(200).json({
     status: true,
@@ -39,36 +33,17 @@ const getTransactions = async (req, res)=>{
 const filterTransactionsWithDate = async (req, res)=>{
 
   try{
-    // const {start_date, end_date} = req.body;
 
     const {startDate, endDate} = req.query;
     
-    if(!startDate || !endDate){
-      res.status(404).json({
-        status: false,
-        message: 'Fill or fields'
-      });
-      return;
-    };
+    if(!startDate || !endDate) throw new Error('Fill all fields', 400)
+   
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    const getAllTransactionsViaDate = await transactionModel.findAll(
-      {
-        where:{
-          createdAt: {[Op.between] : [start, end]}
-      },
-      order:[['sn']]
-    }
-    // {limit:5}
-     );
-     if(getAllTransactionsViaDate.length < 1){
-      res.status(401).json({
-        status: false,
-        message: 'No transactions during this period.'
-      });
-      return;
-    };
+    const getAllTransactionsViaDate = await getAllTransactionViaDate(start, end);
+
+    if(getAllTransactionsViaDate.length < 1) throw new Error('No transactions during this period.', 400);
 
     res.status(200).json({
     status: true,
@@ -77,13 +52,13 @@ const filterTransactionsWithDate = async (req, res)=>{
   });
 
   } catch(error){
-    console.log(error)
+
     res.status(500).json({
       status: false,
       message: error.message
     });
 
-  }
+  };
 };
 
 const filterTransaction = async (req, res)=>{
@@ -94,59 +69,31 @@ const filterTransaction = async (req, res)=>{
     let amount = filter_by;
 
     if(filter_by === transactionTypeEnum.CREDIT){
-      const creditTransactions = await transactionModel.findAll({
-          where: {
-            transaction_type: transactionTypeEnum.CREDIT
-          },
-          order:[['sn']]
-        });
-        if(creditTransactions.length < 1){
-          res.status(401).json({
-            status: false,
-            message: 'No credit transaction.'
-          });
-          return;
-        };
-        res.status(200).json({
-          status: true,
-          message: 'All credit transactions logged successfully',
-          data: creditTransactions
-        });
+
+      const creditTransactions = await getTransactionsViaCredit(transactionTypeEnum);
+
+      res.status(200).json({
+        status: true,
+        message: 'All credit transactions logged successfully',
+        data: creditTransactions
+      });
 
     } else if(filter_by === transactionTypeEnum.DEBIT){
-      const debitTransactions = await transactionModel.findAll({
-        where: {
-          transaction_type: transactionTypeEnum.DEBIT
-        },
-        order:[['sn']]
-      });
-      if(debitTransactions.length < 1){
-        res.status(401).json({
-          status: false,
-          message: 'No credit transaction.'
-        });
-        return;
-      };
+
+      const debitTransactions = await getTransactionsViaDebit(transactionTypeEnum);
+
       res.status(200).json({
         status: true,
         message: 'All debit transactions logged successfully',
         data: debitTransactions
-      })
-    } else if(filter_by === amount){
-      const transactionAmount = await transactionModel.findAll({
-        
-        where: {
-          amount: amount
-        },
-        order:[['sn']]
       });
-      if(transactionAmount.length < 1){
-        res.status(401).json({
-          status: false,
-          message: 'No transaction.'
-        });
-        return;
-      };
+
+    } else if(filter_by === amount){
+
+      const transactionAmount = await getTransactionsViaAmount(amount)
+
+      if(transactionAmount.length < 1) throw new Error('No transaction.', 400)
+
       res.status(200).json({
         status: true,
         message: 'All credit transactions logged successfully',
@@ -163,6 +110,62 @@ const filterTransaction = async (req, res)=>{
   };
 };
 
+
+const getTransactionsViaCredit = (transactionTypeEnum) =>{
+  return transactionModel.findAll({
+    where: {
+      transaction_type: transactionTypeEnum.CREDIT
+    },
+    order:[['sn']]
+  });
+};
+
+
+const getTransactionsViaDebit = (transactionTypeEnum) =>{
+  return transactionModel.findAll({
+    where: {
+      transaction_type: transactionTypeEnum.DEBIT
+    },
+    order:[['sn']]
+  });
+};
+
+
+const getTransactionsViaAmount = (amount) =>{
+  return transactionModel.findAll({
+        
+    where: {
+      amount: amount
+    },
+    order:[['sn']]
+  });
+
+}
+
+
+const getAllTransactionViaDate = (start, end)=>{
+  return transactionModel.findAll(
+    {
+      where:{
+        createdAt: {[Op.between] : [start, end]}
+    },
+    order:[['sn']]
+  }
+  // {limit:5}
+   );
+}
+
+
+const getAllTransaction = (limit, offset)=>{
+  return transactionModel.findAll(
+    {
+      order:[['sn']],
+      limit: limit,
+      offset: offset,
+    }
+   );
+}
+ 
 
 module.exports = {  getTransactions,
                     filterTransaction,

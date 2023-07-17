@@ -18,13 +18,9 @@ const complianLog = async (req, res)=>{
   try{
     const {name, email, message} = req.body;
 
-    const getUser = await userModel.findOne({
-      where : {
-        email : email
-      }
-    });
-
-    if(getUser === null){
+    const getUserInfo = await getUser(email);
+    
+    if(getUserInfo === null){
       res.status(404).json({
         status: false,
         message: "User email is not registered, try again."
@@ -32,7 +28,7 @@ const complianLog = async (req, res)=>{
       return;
     };
     
-    const userId = getUser.userId
+    const userId = getUserInfo.userId
 
     await complaintModel.create({
       complaint_id: uuidv4(),
@@ -54,8 +50,17 @@ const complianLog = async (req, res)=>{
     });
   };
 
-
 };
+
+
+const getUser = (email)=>{
+  return userModel.findOne({
+    where : {
+      email : email
+    }
+  });
+};
+
 
 module.exports = complianLog;
 

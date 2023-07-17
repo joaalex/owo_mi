@@ -22,8 +22,8 @@ const comparePassword = (password, salt) => {
           hash: hash
         })
     });
-  })
-}    
+  });
+};    
   
 
 const otpValidity = (otpCreated) =>{

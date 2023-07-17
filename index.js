@@ -8,6 +8,7 @@ const otp = require('./models/otpModel');
 const wallet = require('./models/walletModel');
 const transaction = require('./models/transactionModel');
 const complaint = require('./models/compliantModel');
+const Faq = require('./models/faqModel');
 const {notFoundMessage} = require('./constants/message');
 const displayRoute = require('express-routemap');
 const userRoutes = require('./routes/userRoute');
@@ -15,6 +16,7 @@ const creditAccountRoute = require('./routes/creditAccountRoute');
 const debitAccountRoute = require('./routes/debitAccountRoute');
 const complainRoute = require('./routes/complainLogRoute');
 const transactionRoute = require('./routes/getTransactionRoute');
+const faqRoute = require('./routes/faqRoute');
 const bodyParser = require('body-parser');
 
 
@@ -24,6 +26,7 @@ app.use('/api/v1/credit-account', creditAccountRoute);
 app.use('/api/v1/debit-account', debitAccountRoute);
 app.use('/api/v1/complains', complainRoute );
 app.use('/api/v1/transactions', transactionRoute);
+app.use('/api/v1/faq', faqRoute);
 
 sequelize.sync()
 .then( result => console.log('Model synced.'))

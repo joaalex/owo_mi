@@ -16,8 +16,7 @@ const Faq = sequelize.define('faqs',{
   },
   userId:{
     type: DataTypes.UUID,
-    allowNull: false,
-    unique: true,
+    allowNull: false
   },
   faq_title:{
     type: DataTypes.STRING,
